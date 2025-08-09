@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escape Room Digital - Candado Inteligente</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Orbitron:wght@400;700;900&family=Creepster&family=Roboto:wght@300;400;500;700&display=swap');
+        
+        :root {
+            --primary-color: #ffd700;
+            --secondary-color: #4a90e2;
+            --success-color: #00ff88;
+            --error-color: #ff4757;
+            --bg-primary: #0c0c0c;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cinzel', serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Partículas de fondo */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            animation: float 6s infinite linear;
+            opacity: 0.3;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-10px) rotate(360deg); opacity: 0; }
+        }
+
+        /* Header con controles del presentador */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 1rem;
+            z-index: 100;
+            border-bottom: 2px solid var(--primary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .header.hidden {
+            transform: translateY(-100%);
+        }
+
+        .logo {
+            font-family: 'Creepster', cursive;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            text-shadow: 0 0 10px var(--primary-color);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Contenedor principal */
+        .main-container {
+            display: flex;
+            min-height: 100vh;
+            padding-top: 80px; /* Ajustado para el header */
+        }
+
+        .game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 2rem;
+            border-left: 2px solid var(--primary-color);
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            transform: translateX(100%); /* Oculto por defecto */
+        }
+
+        .sidebar.visible {
+            transform: translateX(0);
+        }
+        
+        .title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+            text-shadow: 0 0 20px var(--primary-color);
+            background: linear-gradient(45deg, var(--primary-color), #ffed4e, var(--primary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px var(--primary-color); }
+            to { text-shadow: 0 0 30px var(--primary-color), 0 0 40px rgba(255, 215, 0, 0.3); }
+        }
+
+        .lock-container {
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .lock-svg {
+            width: 200px;
+            height: 200px;
+            filter: drop-shadow(0 0 20px var(--primary-color));
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .lock-svg.unlocked #lockShackle {
+            transform: translateY(-30px) rotate(-15deg);
+            transform-origin: 125px 90px;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .game-controls {
+            display: flex;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, var(--secondary-color), #357abd);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: white;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+            position: relative;
+            overflow: hidden;
+            min-width: 120px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn.success {
+            background: linear-gradient(45deg, var(--success-color), #00cc6a);
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+        
+        .btn.danger {
+            background: linear-gradient(45deg, var(--error-color), #ff3742);
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+        }
+
+        .input-section {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .main-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 15px;
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            text-align: center;
+            width: 300px;
+            max-width: 100%;
+            font-family: 'Orbitron', monospace;
+            transition: all 0.3s ease;
+        }
+
+        .main-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .timer-container {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .timer {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 900;
+            color: var(--success-color);
+            text-shadow: 0 0 20px var(--success-color);
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            display: inline-block;
+            min-width: 200px;
+        }
+
+        .timer.warning {
+            color: #ffa500;
+            text-shadow: 0 0 20px #ffa500;
+            border-color: rgba(255, 165, 0, 0.3);
+            animation: pulse 1s infinite;
+        }
+
+        .timer.danger {
+            color: var(--error-color);
+            text-shadow: 0 0 20px var(--error-color);
+            border-color: rgba(255, 71, 87, 0.3);
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .sidebar h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .control-group {
+            margin-bottom: 2rem;
+        }
+
+        .share-link-container {
+            margin-top: 1rem;
+        }
+
+        .share-link-container input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+            background: rgba(0,0,0,0.2);
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 2rem;
+            border-radius: 20px;
+            font-size: 1.5rem;
+            text-align: center;
+            z-index: 1000;
+            border: 2px solid;
+            display: none;
+            animation: messageAppear 0.3s ease-out;
+        }
+
+        @keyframes messageAppear {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .message.success { border-color: var(--success-color); color: var(--success-color); }
+        .message.error { border-color: var(--error-color); color: var(--error-color); }
+        .message.info { border-color: var(--secondary-color); color: var(--secondary-color); }
+        
+        .fireworks {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 999;
+        }
+
+        .firework {
+            position: absolute; width: 4px; height: 4px; border-radius: 50%;
+            animation: fireworkExplode 2s ease-out forwards;
+        }
+
+        @keyframes fireworkExplode {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .role-selector {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center; justify-content: center;
+            z-index: 2000;
+            transition: opacity 0.5s ease;
+        }
+
+        .role-modal {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            padding: 3rem;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
+            max-width: 500px; width: 90%;
+        }
+
+        .role-modal h2 {
+            font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem;
+        }
+
+        .role-modal p {
+            font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 2rem;
+        }
+
+        .role-buttons {
+            display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+        }
+
+        .role-btn {
+            background: linear-gradient(135deg, var(--secondary-color), #357abd);
+            border: none; padding: 1.5rem; border-radius: 15px; color: white;
+            font-family: 'Orbitron', monospace; font-weight: 700; font-size: 1.2rem;
+            cursor: pointer; transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+            min-width: 200px;
+        }
+
+        .role-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(74, 144, 226, 0.4);
+        }
+
+        .presenter-btn {
+            background: linear-gradient(135deg, var(--primary-color), #ffed4e);
+            color: var(--bg-primary);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+        }
+
+        .role-badge {
+            background: var(--secondary-color); color: white;
+            padding: 0.5rem 1rem; border-radius: 20px;
+            font-size: 0.9rem; font-weight: 600;
+        }
+        .role-badge.presenter { background: var(--primary-color); color: var(--bg-primary); }
+        .role-badge.participant { background: var(--success-color); color: var(--bg-primary); }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                position: fixed;
+                top: 70px; /* Ajustado para el header */
+                right: 0;
+                height: calc(100vh - 70px);
+                z-index: 50;
+                transform: translateX(100%);
+            }
+            .sidebar.visible {
+                transform: translateX(0);
+            }
+            .main-container {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                padding: 0.5rem;
+                height: auto;
+            }
+            .main-container {
+                padding-top: 120px; /* Más espacio para el header colapsado */
+            }
+        }
+    </style>
+<style type="text/css">
+.grande { font-size: 60px; }
+</style>
+<script>
+// Escribir aqui el código Javascript
+</script>
+</head>
+<body>
+    <!-- Elementos de la UI -->
+    <div class="particles" id="particles"></div>
+
+    <div class="role-selector" id="roleSelector">
+        <div class="role-modal">
+            <h2>🎮 Selecciona tu rol</h2>
+            <p>Elige si quieres controlar la sesión o participar en ella.</p>
+            <div class="role-buttons">
+                <button class="role-btn presenter-btn" id="presenterBtn">👨‍🏫 Presentador</button>
+                <button class="role-btn" id="participantBtn">🎯 Participante</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para introducir Session ID -->
+    <div class="role-selector" id="sessionIdModal" style="display: none;">
+        <div class="role-modal">
+            <h2>🔗 Unirse a la Sesión</h2>
+            <p>Introduce el ID de la sesión que te ha dado el presentador.</p>
+            <input type="text" id="sessionIdInput" class="main-input" placeholder="ID de la Sesión...">
+            <br><br>
+            <div class="role-buttons">
+                <button class="btn" id="joinSessionBtn">Unirse</button>
+                <button class="btn" id="backToRoleSelectorBtn" style="background: #555;">Volver</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación -->
+    <div class="role-selector" id="confirmModal" style="display: none;">
+        <div class="role-modal">
+            <h2 id="confirmTitle">¿Estás seguro?</h2>
+            <p id="confirmText">Esta acción no se puede deshacer.</p>
+            <div class="role-buttons">
+                <button class="btn danger" id="confirmYesBtn">Sí</button>
+                <button class="btn" id="confirmNoBtn">No</button>
+            </div>
+        </div>
+    </div>
+
+
+    <header class="header">
+        <div class="logo">🔐 Escape Room Digital</div>
+        <div class="header-controls">
+            <div id="roleIndicator"></div>
+            <button class="btn" id="toggleSidebar" style="display: none;">⚙️ Panel</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <main class="game-area">
+            <h1 class="title" id="gameTitle">ESPERANDO AL PRESENTADOR...</h1>
+            
+            <div class="lock-container">
+                <svg class="lock-svg" id="lockSvg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="lockGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:var(--primary-color);stop-opacity:1"></stop>
+                            <stop offset="100%" style="stop-color:#b8860b;stop-opacity:1"></stop>
+                        </linearGradient>
+                    </defs>
+                    <path id="lockShackle" d="M 75 90 L 75 70 A 25 25 0 0 1 125 70 L 125 90" fill="none" stroke="url(#lockGradient)" stroke-width="15" stroke-linecap="round"></path>
+                    <rect x="50" y="90" width="100" height="80" rx="10" ry="10" fill="url(#lockGradient)"></rect>
+                    <circle cx="100" cy="120" r="8" fill="#1a1a2e"></circle>
+                    <rect x="96" y="120" width="8" height="25" rx="4" ry="4" fill="#1a1a2e"></rect>
+                </svg>
+            </div>
+
+            <div class="input-section">
+                <label class="input-label" for="codeInput">🔑 INTRODUCE LA CLAVE SECRETA</label>
+                <input type="text" id="codeInput" class="main-input" placeholder="Esperando inicio..." autocomplete="off" disabled="">
+                <br><br>
+                <button class="btn success" id="checkBtn" disabled="">🔍 Verificar</button>
+            </div>
+
+            <div class="timer-container">
+                <div class="timer" id="timer">00:00</div>
+            </div>
+        </main>
+
+        <aside class="sidebar" id="sidebar">
+            <h3>🎮 Control de Sesión</h3>
+            <div class="control-group">
+                <button class="btn" id="startBtn">🚀 Iniciar Misión</button>
+                <button class="btn" id="pauseBtn" disabled="">⏸️ Pausa</button>
+                <button class="btn" id="resetBtn" disabled="">🔄 Reiniciar</button>
+            </div>
+            
+            <h3>🔗 Compartir Sesión</h3>
+            <div class="control-group">
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Usa este enlace para que los participantes se unan:</p>
+                <div class="share-link-container" id="shareLinkContainer">
+                    <input type="text" id="shareLinkInput" readonly="" placeholder="Generando enlace...">
+                    <button class="btn" id="copyLinkBtn">📋 Copiar Enlace</button>
+                </div>
+            </div>
+
+            <h3>🔑 Clave Secreta</h3>
+             <div class="control-group">
+                <input type="text" id="secretKeyInput" class="main-input" value="EXPLORER123">
+                <button class="btn" id="setKeyBtn">Establecer Clave</button>
+            </div>
+        </aside>
+    </div>
+
+    <div class="message" id="message"></div>
+    <div class="fireworks" id="fireworks"></div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Importa las funciones necesarias de los SDK de Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CONFIGURACIÓN Y VARIABLES GLOBALES ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'escape-room-default';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentRole = null;
+        let sessionId = null;
+        let userId = null;
+        let sessionUnsubscribe = null;
+        let timerInterval = null;
+        let onConfirmAction = null;
+
+        // Elementos del DOM
+        const DOMElements = {
+            roleSelector: document.getElementById('roleSelector'),
+            presenterBtn: document.getElementById('presenterBtn'),
+            participantBtn: document.getElementById('participantBtn'),
+            sessionIdModal: document.getElementById('sessionIdModal'),
+            sessionIdInput: document.getElementById('sessionIdInput'),
+            joinSessionBtn: document.getElementById('joinSessionBtn'),
+            backToRoleSelectorBtn: document.getElementById('backToRoleSelectorBtn'),
+            confirmModal: document.getElementById('confirmModal'),
+            confirmTitle: document.getElementById('confirmTitle'),
+            confirmText: document.getElementById('confirmText'),
+            confirmYesBtn: document.getElementById('confirmYesBtn'),
+            confirmNoBtn: document.getElementById('confirmNoBtn'),
+            header: document.getElementById('header'),
+            roleIndicator: document.getElementById('roleIndicator'),
+            toggleSidebarBtn: document.getElementById('toggleSidebar'),
+            sidebar: document.getElementById('sidebar'),
+            gameTitle: document.getElementById('gameTitle'),
+            codeInput: document.getElementById('codeInput'),
+            checkBtn: document.getElementById('checkBtn'),
+            timer: document.getElementById('timer'),
+            startBtn: document.getElementById('startBtn'),
+            pauseBtn: document.getElementById('pauseBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            shareLinkInput: document.getElementById('shareLinkInput'),
+            copyLinkBtn: document.getElementById('copyLinkBtn'),
+            secretKeyInput: document.getElementById('secretKeyInput'),
+            setKeyBtn: document.getElementById('setKeyBtn'),
+            lockSvg: document.getElementById('lockSvg'),
+            message: document.getElementById('message'),
+            fireworks: document.getElementById('fireworks'),
+            particles: document.getElementById('particles'),
+        };
+        
+        // --- INICIALIZACIÓN Y AUTENTICACIÓN ---
+        window.addEventListener('load', () => {
+            createParticles();
+            authenticateUser();
+        });
+
+        async function authenticateUser() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Error de autenticación:", error);
+                showMessage('Error de autenticación. Por favor, recarga.', 'error');
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const sessionParam = urlParams.get('session');
+
+                    if (sessionParam) {
+                        sessionId = sessionParam;
+                        setupSession('participant');
+                    } else {
+                        DOMElements.roleSelector.style.display = 'flex';
+                    }
+                }
+            });
+        }
+
+        // --- LÓGICA DE ROLES Y SESIÓN ---
+        DOMElements.presenterBtn.addEventListener('click', () => setupSession('presenter'));
+        DOMElements.participantBtn.addEventListener('click', () => {
+            DOMElements.roleSelector.style.display = 'none';
+            DOMElements.sessionIdModal.style.display = 'flex';
+        });
+        
+        DOMElements.joinSessionBtn.addEventListener('click', () => {
+            const enteredSessionId = DOMElements.sessionIdInput.value.trim();
+            if (enteredSessionId) {
+                sessionId = enteredSessionId;
+                DOMElements.sessionIdModal.style.display = 'none';
+                setupSession('participant');
+            } else {
+                showMessage('Por favor, introduce un ID de sesión.', 'error');
+            }
+        });
+
+        DOMElements.backToRoleSelectorBtn.addEventListener('click', () => {
+            DOMElements.sessionIdModal.style.display = 'none';
+            DOMElements.roleSelector.style.display = 'flex';
+        });
+
+
+        async function setupSession(role) {
+            currentRole = role;
+            DOMElements.roleSelector.style.opacity = '0';
+            setTimeout(() => DOMElements.roleSelector.style.display = 'none', 500);
+
+            if (role === 'presenter') {
+                sessionId = userId + '-' + Date.now();
+                const sessionRef = doc(db, "artifacts", appId, "public/data/sessions", sessionId);
+                await setDoc(sessionRef, {
+                    presenterId: userId,
+                    createdAt: serverTimestamp(),
+                    status: 'pending',
+                    correctKey: DOMElements.secretKeyInput.value.trim().toUpperCase(),
+                    startTime: null,
+                    pauseTime: null,
+                    totalPausedTime: 0,
+                    attempts: 0,
+                    successes: 0,
+                });
+            } else {
+                const sessionRef = doc(db, "artifacts", appId, "public/data/sessions", sessionId);
+                const sessionSnap = await getDoc(sessionRef);
+                if (!sessionSnap.exists()) {
+                    showMessage("Sesión no encontrada. Verifica el ID.", 'error');
+                    DOMElements.sessionIdModal.style.display = 'none';
+                    DOMElements.roleSelector.style.display = 'flex';
+                    if (window.history.replaceState) {
+                        const cleanUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+                        window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+                    }
+                    return;
+                }
+            }
+            
+            listenToSessionChanges();
+            updateUIForRole();
+        }
+        
+        function listenToSessionChanges() {
+            if (sessionUnsubscribe) sessionUnsubscribe();
+            
+            const sessionRef = doc(db, "artifacts", appId, "public/data/sessions", sessionId);
+            sessionUnsubscribe = onSnapshot(sessionRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    updateGameState(docSnap.data());
+                } else {
+                    showMessage('La sesión ha finalizado o no existe.', 'info');
+                    clearInterval(timerInterval);
+                    setTimeout(() => window.location.href = window.location.pathname, 3000);
+                }
+            });
+        }
+
+        // --- ACTUALIZACIÓN DE LA INTERFAZ (UI) ---
+        function updateUIForRole() {
+            if (currentRole === 'presenter') {
+                DOMElements.roleIndicator.innerHTML = `<span class="role-badge presenter">👨‍🏫 Presentador</span>`;
+                DOMElements.toggleSidebarBtn.style.display = 'block';
+                DOMElements.sidebar.classList.add('visible');
+                DOMElements.shareLinkInput.value = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+            } else {
+                DOMElements.roleIndicator.innerHTML = `<span class="role-badge participant">🎯 Participante</span>`;
+                DOMElements.toggleSidebarBtn.style.display = 'none';
+                DOMElements.sidebar.classList.remove('visible');
+            }
+        }
+
+        function updateGameState(data) {
+            DOMElements.gameTitle.textContent = data.title || (data.status === 'finished' ? '¡MISIÓN CUMPLIDA!' : '¿LISTOS PARA EL DESAFÍO?');
+            
+            const isGameRunning = data.status === 'running';
+            const isGamePaused = data.status === 'paused';
+            const isGamePending = data.status === 'pending';
+            
+            DOMElements.codeInput.disabled = !isGameRunning;
+            DOMElements.checkBtn.disabled = !isGameRunning;
+            DOMElements.codeInput.placeholder = isGameRunning ? 'Escribe aquí la clave...' : 'Esperando inicio...';
+
+            if (currentRole === 'presenter') {
+                DOMElements.startBtn.disabled = isGameRunning || isGamePaused;
+                DOMElements.pauseBtn.disabled = isGamePending || data.status === 'finished';
+                DOMElements.resetBtn.disabled = isGamePending;
+                DOMElements.pauseBtn.textContent = isGamePaused ? '▶️ Reanudar' : '⏸️ Pausa';
+            }
+
+            if (timerInterval) clearInterval(timerInterval);
+            if (isGameRunning) {
+                timerInterval = setInterval(() => updateTimer(data), 1000);
+            } else if (data.startTime) {
+                updateTimer(data);
+            } else {
+                DOMElements.timer.textContent = "00:00";
+            }
+            
+            if (data.status === 'finished') {
+                DOMElements.lockSvg.classList.add('unlocked');
+                if (currentRole === 'participant') {
+                     showMessage('¡LO HABÉIS CONSEGUIDO!', 'success');
+                }
+                createFireworks();
+            } else {
+                DOMElements.lockSvg.classList.remove('unlocked');
+            }
+        }
+
+        function updateTimer(data) {
+            const now = Date.now();
+            const startTime = data.startTime ? data.startTime.toMillis() : now;
+            const totalPausedTime = data.totalPausedTime || 0;
+            
+            let elapsedTime;
+            if (data.status === 'paused') {
+                const pauseTime = data.pauseTime ? data.pauseTime.toMillis() : now;
+                elapsedTime = Math.floor((pauseTime - startTime - totalPausedTime) / 1000);
+            } else {
+                elapsedTime = Math.floor((now - startTime - totalPausedTime) / 1000);
+            }
+            
+            elapsedTime = Math.max(0, elapsedTime);
+            const minutes = Math.floor(elapsedTime / 60);
+            const seconds = elapsedTime % 60;
+            DOMElements.timer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // --- ACCIONES DEL PRESENTADOR ---
+        DOMElements.startBtn.addEventListener('click', async () => {
+            const sessionRef = doc(db, "artifacts", appId, "public/data/sessions", sessionId);
+            await updateDoc(sessionRef, { status: 'running', startTime: serverTimestamp() });
+        });
+
+        DOMElements.pauseBtn.addEventListener('click', async () => {
+            const sessionRef = doc(db, "artifacts", appId, "public/data/sessions", sessionId);
+            const sessionSnap = await getDoc(sessionRef);
+            const data = sessionSnap.data();
+
+            if (data.status === 'running') {
+                await updateDoc(sessionRef, { status: 'paused', pauseTime: serverTimestamp() });
+            } else if (data.status === 'paused') {
+                const pauseDuration = Date.now() - data.pauseTime.toMillis();
+                await updateDoc(sessionRef, {
+                    status: 'running',
+                    pauseTime: null,
+                    totalPausedTime: (data.totalPausedTime || 0) + pauseDuration
+                });
+            }
+        });
+
+        DOMElements.resetBtn.addEventListener('click', () => {
+            showConfirmModal(
+                'Reiniciar Sesión',
+                '¿Estás seguro? Se perderá todo el progreso actual.',
+                async () => {
+                    const sessionRef = doc(db, "artifacts", appId, "public/data/sessions", sessionId);
+                    await updateDoc(sessionRef, {
+                        status: 'pending', startTime: null, pauseTime: null,
+                        totalPausedTime: 0, attempts: 0, successes: 0
+                    });
+                    DOMElements.timer.textContent = "00:00";
+                    DOMElements.lockSvg.classList.remove('unlocked');
+                    showMessage('La sesión ha sido reiniciada.', 'info');
+                }
+            );
+        });
+        
+        DOMElements.setKeyBtn.addEventListener('click', async () => {
+            const newKey = DOMElements.secretKeyInput.value.trim().toUpperCase();
+            if (newKey) {
+                const sessionRef = doc(db, "artifacts", appId, "public/data/sessions", sessionId);
+                await updateDoc(sessionRef, { correctKey: newKey });
+                showMessage('Clave actualizada', 'success');
+            }
+        });
+
+        DOMElements.copyLinkBtn.addEventListener('click', () => {
+            DOMElements.shareLinkInput.select();
+            document.execCommand('copy');
+            showMessage('Enlace copiado al portapapeles', 'info');
+        });
+        
+        DOMElements.toggleSidebarBtn.addEventListener('click', () => {
+            DOMElements.sidebar.classList.toggle('visible');
+        });
+
+        // --- ACCIONES DEL PARTICIPANTE ---
+        DOMElements.checkBtn.addEventListener('click', async () => {
+            const enteredKey = DOMElements.codeInput.value.trim().toUpperCase();
+            if (!enteredKey) return;
+
+            const sessionRef = doc(db, "artifacts", appId, "public/data/sessions", sessionId);
+            const sessionSnap = await getDoc(sessionRef);
+            const sessionData = sessionSnap.data();
+
+            if (enteredKey === sessionData.correctKey) {
+                await updateDoc(sessionRef, { status: 'finished' });
+                showMessage('¡CLAVE CORRECTA!', 'success');
+            } else {
+                showMessage('Clave incorrecta. ¡Sigue intentándolo!', 'error');
+                DOMElements.codeInput.value = '';
+            }
+        });
+        
+        // --- MODALES Y EFECTOS VISUALES ---
+        function showConfirmModal(title, text, onConfirm) {
+            DOMElements.confirmTitle.textContent = title;
+            DOMElements.confirmText.textContent = text;
+            onConfirmAction = onConfirm;
+            DOMElements.confirmModal.style.display = 'flex';
+        }
+
+        DOMElements.confirmYesBtn.addEventListener('click', () => {
+            if (typeof onConfirmAction === 'function') onConfirmAction();
+            DOMElements.confirmModal.style.display = 'none';
+            onConfirmAction = null;
+        });
+
+        DOMElements.confirmNoBtn.addEventListener('click', () => {
+            DOMElements.confirmModal.style.display = 'none';
+            onConfirmAction = null;
+        });
+
+        function showMessage(text, type = 'info') {
+            const msg = DOMElements.message;
+            msg.textContent = text;
+            msg.className = `message ${type}`;
+            msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, 3000);
+        }
+
+        function createParticles() {
+            for (let i = 0; i < 50; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.left = `${Math.random() * 100}%`;
+                p.style.top = `${Math.random() * 100}%`;
+                p.style.animationDelay = `${Math.random() * 6}s`;
+                p.style.animationDuration = `${3 + Math.random() * 4}s`;
+                DOMElements.particles.appendChild(p);
+            }
+        }
+        
+        function createFireworks() {
+            for (let i = 0; i < 30; i++) {
+                const fw = document.createElement('div');
+                fw.className = 'firework';
+                fw.style.left = `${Math.random() * 100}%`;
+                fw.style.top = `${Math.random() * 100}%`;
+                fw.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                fw.style.animationDelay = `${Math.random() * 2}s`;
+                DOMElements.fireworks.appendChild(fw);
+            }
+            setTimeout(() => DOMElements.fireworks.innerHTML = '', 4000);
+        }
+
+    </script>
+
+
+
+</body></html>
